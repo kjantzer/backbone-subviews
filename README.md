@@ -5,59 +5,61 @@ Extends Backbone.View with support for nested subviews that can be reused and cl
 
 https://github.com/kjantzer/backbonejs-subviews
 
+```javascript
+var MySubview = Backbone.View.extend({});
 
-	var MySubview = Backbone.View.extend({});
+var MyView = Backbone.View.extend({
 	
-	var MyView = Backbone.View.extend({
+	initialize: function(){
 		
-		initialize: function(){
-			
-			this.subview('my-subview', new MySubview());
-			this.appendSubview('my-subview');
-			
-		}
+		this.subview('my-subview', new MySubview());
+		this.appendSubview('my-subview');
 		
-		render: function(){
-		
-			// render the child view
-			this.subview('my-subview').render();
-		
-			return this;
-		}
-	})
+	}
 	
+	render: function(){
 	
-	// ...later..
+		// render the child view
+		this.subview('my-subview').render();
 	
-	MyView.cleanup() // the child view will also be cleaned up
+		return this;
+	}
+})
 
+
+// ...later..
+
+MyView.cleanup() // the child view will also be cleaned up
+```
 
 You can reuse views too
 
-	var MyListSubivew = Backbone.View.extend({});
+```javascript
+var MyListSubivew = Backbone.View.extend({});
+
+var MyListView = Backbone.View.extend({
 	
-	var MyListView = Backbone.View.extend({
-		
-		initialize: function(){}
-		
-		render: function(){
-		
-			this.$el.html('')
-			this.addAll();
-		
-			return this;
-		},
-		
-		addAll: function(){
-			// assuming this view has a collection...
-			this.collection.each(this.addOne, this)
-		},
-		
-		addOne: function(model){
-			var viewName = 'item-'+model.id,
-				view = this.subview(viewName)	// reuse the view or create a new one
-					|| this.subview(viewName, new MyListSubivew({model: model}))
-					
-			this.appendSubview(viewName);
-		}
-	})
+	initialize: function(){}
+	
+	render: function(){
+	
+		this.$el.html('')
+		this.addAll();
+	
+		return this;
+	},
+	
+	addAll: function(){
+		// assuming this view has a collection...
+		this.collection.each(this.addOne, this)
+	},
+	
+	addOne: function(model){
+		var viewName = 'item-'+model.id,
+			view = this.subview(viewName)	// reuse the view or create a new one
+				|| this.subview(viewName, new MyListSubivew({model: model}))
+				
+		this.appendSubview(viewName);
+	}
+})
+```
