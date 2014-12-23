@@ -1,5 +1,5 @@
 /*
-	Backbone Subviews 0.1.0
+	Backbone Subviews 0.2.0
 
 	Extends Backbone.View with support for nested subviews that can be reused and cleaned up when need be.
 
@@ -11,6 +11,15 @@
 
 _.extend(Backbone.View.prototype, {
 	
+	inDOM: function(){
+		return this.el.parentElement != null;
+	},
+
+	// only calls `render` if this view is in the DOM
+	reRender: function(){
+		if( this.inDOM() )
+			this.render();
+	},
 
 /*
 	Subview - adds or retrieves subview
