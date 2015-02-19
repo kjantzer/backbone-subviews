@@ -1,5 +1,5 @@
 /*
-	Backbone Subviews 0.2.0
+	Backbone Subviews 0.3.0
 
 	Extends Backbone.View with support for nested subviews that can be reused and cleaned up when need be.
 
@@ -36,28 +36,71 @@ _.extend(Backbone.View.prototype, {
 
 		this.__subviews = this.__subviews || {};
 
-		if( view ){
+		return view 
+			? this._setSubview(viewName, view)
+			: this._getSubview(viewName) 
+	},
 
-			// if this view already existed, clean it up first
-			if( this.__subviews[viewName] ) this.__subviews[viewName].cleanup();
+	// high level subview - used to open views and can support opening a view with require.js
+	openSubview: function(viewName){
+		this._getSubview(viewName, 'open');
+	},
 
-			// set the new view
-			this.__subviews[viewName] = view;
-			
-			if( typeof view === 'object' ) // only setup view if it has been intialized
-				this._setupSubview(viewName, view);
+	_setSubview: function(viewName, view){
+		// if this view already existed, clean it up first
+		if( this.__subviews[viewName] ) this.__subviews[viewName].cleanup();
 
-			return view;
+		// set the new view
+		this.__subviews[viewName] = view;
 		
-		// return the requested view
-		}else{
-			var view = this.__subviews[viewName];
+		if( typeof view === 'object' ) // only setup view if it has been intialized
+			this._setupSubview(viewName, view);
 
-			if( typeof view === 'function' )
-				view = this.__subviews[viewName] = this._setupSubview(viewName, new view() );
+		return view;
+	},
 
-			return view;
-		}
+	_getSubview: function(viewName, method){
+
+		var view = this.__subviews[viewName];
+
+		// if view is a string, it is assumed that require.js is being used
+		if( _.isString(view) )
+			return this._requireSubview(viewName, view, method);
+
+		else if( typeof view === 'function' )
+			view = this.__subviews[viewName] = this._setupSubview(viewName, new view() );
+
+		if( method && view[method] )
+			view[method].call(view);
+
+		return view;
+	},
+
+	_requireSubview: function(viewName, name, method){
+
+		var self = this;
+
+		// not sure I really need this promise here...but we'll leave for now
+		return new Promise(function(resolve, reject) {
+		
+			require([name], function(view){
+
+				if( view ){
+
+					// initialize and setup view
+					view = self.__subviews[viewName] = self._setupSubview(viewName, new view() );
+
+					method && view[method] && view[method].call(view)
+
+					resolve(view)
+				
+				}else{
+					reject(view);
+				}
+
+			})
+
+		});
 	},
 
 	_setupSubview: function(viewName, view){
