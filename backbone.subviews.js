@@ -10,6 +10,9 @@
 */
 
 _.extend(Backbone.View.prototype, {
+
+	// stopListeningOnCleanup: false,
+	// removeOnCleanup: false,
 	
 	inDOM: function(){
 		return this.el.parentElement != null;
@@ -140,10 +143,12 @@ _.extend(Backbone.View.prototype, {
 
 		this.cleanupSubviews(andClear);
 
-		if( this.stopListeningOnCleanup && this.stopListeningOnCleanup == true ){
+		if( this.removeOnCleanup && this.removeOnCleanup == true ){
 			this.stopListening();
-
 			this._removeFromParentView();
+		}
+		else if( this.stopListeningOnCleanup && this.stopListeningOnCleanup == true ){
+			this.stopListening();
 		}
 	},
 
