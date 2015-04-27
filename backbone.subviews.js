@@ -113,7 +113,7 @@ _.extend(Backbone.View.prototype, {
 	},
 
 	_removeSubview: function(view){
-		if( view && view.viewName )
+		if( view && view.viewName && this.__subviews )
 			delete this.__subviews[view.viewName];
 		delete view.parentView;
 	},
