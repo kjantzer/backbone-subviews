@@ -154,7 +154,7 @@ _.extend(Backbone.View.prototype, {
 
 	cleanupSubviews: function(andClear){
 
-		this.view && this.view.cleanup && this.view.cleanup();		// main child view if it exists
+		this.view && this.view != this.parentView && this.view.cleanup && this.view.cleanup();		// main child view if it exists
 		this.editor && this.editor.cleanup && this.editor.cleanup();	// model editor if it exists
 
 		// all subviews
