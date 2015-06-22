@@ -62,24 +62,24 @@ _.extend(Backbone.View.prototype, {
 		return view;
 	},
 
-	_getSubview: function(viewName, method){
+	_getSubview: function(viewName, method, args){
 
 		var view = this.__subviews[viewName];
 
 		// if view is a string, it is assumed that require.js is being used
 		if( _.isString(view) )
-			return this._requireSubview(viewName, view, method);
+			return this._requireSubview(viewName, view, method, args);
 
 		else if( typeof view === 'function' )
 			view = this.__subviews[viewName] = this._setupSubview(viewName, new view() );
 
 		if( method && view[method] )
-			view[method].call(view);
+			view[method].apply(view, args||[]);
 
 		return view;
 	},
 
-	_requireSubview: function(viewName, name, method){
+	_requireSubview: function(viewName, name, method, args){
 
 		var self = this;
 
@@ -93,7 +93,7 @@ _.extend(Backbone.View.prototype, {
 					// initialize and setup view
 					view = self.__subviews[viewName] = self._setupSubview(viewName, new view() );
 
-					method && view[method] && view[method].call(view)
+					method && view[method] && view[method].apply(view, args||[])
 
 					resolve(view)
 				
