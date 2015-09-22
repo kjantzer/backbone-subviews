@@ -1,0 +1,15 @@
+{
+  "name": "kjantzer-backbone-subviews",
+  "version": "0.3.1",
+  "description": "Extends Backbone.View with support for nested subviews that can be reused and cleaned up when need be.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kjantzer/backbone-subviews"
+  },
+  "author": "Kevin Jantzer",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kjantzer/backbone-subviews/issues"
+  },
+  "homepage": "https://github.com/kjantzer/backbone-subviews"
+}
