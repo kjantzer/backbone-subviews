@@ -2,7 +2,6 @@ Backbone.js Subviews
 ===================
 
 ![Version 0.3.1](https://img.shields.io/badge/Version-0.3.1-blue.svg)
-[![GitHub stars](https://img.shields.io/github/stars/badges/shields.svg?style=social&label=Stars&style=flat-square)](https://github.com/kjantzer/backbonejs-subviews)
 
 >Extends `Backbone.View` with support for nested subviews that can be reused and cleaned up when need be. (helps mitigate ghosted views)
 
