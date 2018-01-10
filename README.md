@@ -56,14 +56,10 @@ var MyListView = Backbone.View.extend({
 	render: function(){
 	
 		this.$el.html('')
-		this.addAll();
-	
-		return this;
-	},
-	
-	addAll: function(){
 		// assuming this view has a collection...
 		this.collection.each(this.addOne, this)
+	
+		return this;
 	},
 	
 	addOne: function(model){
