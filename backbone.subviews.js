@@ -1,5 +1,5 @@
 /*
-	Backbone Subviews 0.3.1
+	Backbone Subviews 0.4.0
 
 	Extends Backbone.View with support for nested subviews that can be reused and cleaned up when need be.
 
@@ -14,15 +14,59 @@ _.extend(Backbone.View.prototype, {
 	// stopListeningOnCleanup: false,
 	// removeOnCleanup: false,
 	
+	// setup a list of views to be appended and rendered on this view
+	/*
+	views: {
+		'view': Backbone.View,
+		'sidebar': MySidebarView,
+		'badge': {view: BadgeView, appendTo: '.title.badge' }
+	},*/
+	
+	// optional setup logic for views
+	//onViewSetup: function(vName, view){},
+	
+	empty: function(){
+		this.el.innerHTML = ''
+	},
+	
 	inDOM: function(){
-		return this.el.parentElement != null;
+		return document.body.contains(this.el)
 	},
 
 	// only calls `render` if this view is in the DOM
 	reRender: function(){
-		if( this.inDOM() )
+		if( this.inDOM() ){
 			this.render();
+			return true;
+		}else{
+			return false;
+		}
 	},
+
+	// default render method
+    render: function(){
+        if( this.template ){
+            this.renderTemplate();
+            this.delegateEvents();
+        }
+		
+		this.renderViews()
+		
+        return this;
+    },
+	
+	renderTemplate: function(data, template){
+        var html;
+		
+		if( !data && this.model )
+			data = this.model.toTemplateData ? this.model.toTemplateData() : this.model.toJSON()
+
+        html = data ? _.template(template||this.template, data) : (template||this.template)
+
+        this.$el.html(html);
+
+        return this;
+    },
 
 /*
 	Subview - adds or retrieves subview
@@ -39,15 +83,77 @@ _.extend(Backbone.View.prototype, {
 
 		this.__subviews = this.__subviews || {};
 
-		return view 
+		return view
 			? this._setSubview(viewName, view)
 			: this._getSubview(viewName) 
+	},
+	
+	// shorter alias
+	sv: function(viewName, view){
+		return this.subview(viewName, view)
 	},
 
 	// high level subview - used to open views and can support opening a view with require.js
 	openSubview: function(viewName){
 		this._getSubview(viewName, 'open');
 	},
+	
+	// render this.views – will also init and append the view if needed
+	renderViews: function(){
+
+		if( this.views )
+        _.each(this.views, (v, vName)=>{
+            
+			// get view info/options
+			/*
+			{
+				view: Backbone.View,
+				appendTo: 'css-query' // defaults to this.el
+			}
+			
+			v could be a backbone.view with no options, so convert to object
+			*/
+			let vInfo = _.isFunction(v) && v.prototype.render ? {view:v}: v
+			
+			// no view given
+			if( !vInfo.view )
+				return console.warn('No view given for: ', vName)
+			
+            // if view has not be created, create it
+            if( !this.sv(vName) ){
+                
+				this.sv(vName, (vInfo.view.prototype.render ? new vInfo.view({model:this.model}) : vInfo.view.call(this)));
+				
+				// let others hook into the setup
+	            this.onViewSetup && this.onViewSetup(vName, this.sv(vName))
+            }
+			
+			// add view to this parent element if needed
+			if( !this.el.contains( this.sv(vName).el ) ){
+			
+				let $renderTo = this.$el
+				
+				// if view definition requested to append view somewhere specific
+				if( vInfo.appendTo ){
+					$renderTo = this.$(vInfo.appendTo)
+					if( !$renderTo )
+						return console.warn('Cannot append `'+vName+'` to ', vInfo.appendTo)
+				}
+				
+				$renderTo.append( this.sv(vName).el );
+			}
+			
+			// render the subview
+			this.sv(vName).render()
+        })
+    },
+	
+	forEachView: function(fnAction){
+        if( fnAction )
+        _.each(this.views, function(v, vName){
+            this.sv(vName) && fnAction(this.sv(vName))
+        }.bind(this))
+    },
 
 	_setSubview: function(viewName, view){
 		// if this view already existed, clean it up first
@@ -155,12 +261,13 @@ _.extend(Backbone.View.prototype, {
 
 	cleanupSubviews: function(andClear){
 
-		this.view && this.view != this.parentView && this.view.cleanup && this.view.cleanup();		// main child view if it exists
+		this.view && this.view != this.parentView && this.view.cleanup && this.view.cleanup();
+		var pv = this.parentView;
 		this.editor && this.editor.cleanup && this.editor.cleanup();	// model editor if it exists
 
 		// all subviews
 		_.each(this.__subviews, function(view){
-			if( view.cleanup ) // test since view may not be initialized
+			if( view.cleanup && view != pv) // test since view may not be initialized
 				view.cleanup();
 		});
 
@@ -168,7 +275,7 @@ _.extend(Backbone.View.prototype, {
 	},
 
 	remove: function(animated, callback){
-		
+
 		// if extra cleanup is desired, do it now
 		this.cleanup();
 
