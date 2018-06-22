@@ -44,29 +44,29 @@ let BackboneSubviews = {
 	},
 
 	// default render method
-    render: function(){
-        if( this.template ){
-            this.renderTemplate();
-            this.delegateEvents();
-        }
+	render: function(){
+		if( this.template ){
+			this.renderTemplate();
+			this.delegateEvents();
+		}
 		
 		this.renderViews()
 		
-        return this;
-    },
+		return this;
+	},
 	
 	renderTemplate: function(data, template){
-        var html;
+		var html;
 		
 		if( !data && this.model )
 			data = this.model.toTemplateData ? this.model.toTemplateData() : this.model.toJSON()
 
-        html = data ? _.template(template||this.template, data) : (template||this.template)
+		html = data ? _.template(template||this.template, data) : (template||this.template)
 
-        this.$el.html(html);
+		this.$el.html(html);
 
-        return this;
-    },
+		return this;
+	},
 	
 	parent: function(viewName, returnPromise=false){
 	
@@ -161,8 +161,8 @@ let BackboneSubviews = {
 	renderViews: function(){
 
 		if( this.views )
-        _.each(this.views, (v, vName)=>{
-            
+		_.each(this.views, (v, vName)=>{
+			
 			// get view info/options
 			/*
 			{
@@ -178,17 +178,17 @@ let BackboneSubviews = {
 			if( !vInfo.view )
 				return console.warn('No view given for: ', vName)
 			
-            // if view has not be created, create it
-            if( !this.sv(vName) ){
-                
+			// if view has not be created, create it
+			if( !this.sv(vName) ){
+				
 				this.sv(vName, (vInfo.view.prototype.render ? new vInfo.view({model:this.model}) : vInfo.view.call(this)));
 				
 				if( vInfo.setModel )
 					vInfo.setModel.call(this, this.sv(vName), this.model)
 				
 				// let others hook into the setup
-	            this.onViewSetup && this.onViewSetup(vName, this.sv(vName))
-            }
+				this.onViewSetup && this.onViewSetup(vName, this.sv(vName))
+			}
 			
 			// add view to this parent element if needed
 			if( !this.el.contains( this.sv(vName).el ) ){
@@ -207,15 +207,15 @@ let BackboneSubviews = {
 			
 			// render the subview
 			this.sv(vName).render()
-        })
-    },
+		})
+	},
 	
 	forEachView: function(fnAction){
-        if( fnAction )
-        _.each(this.views, function(v, vName){
-            this.sv(vName) && fnAction(this.sv(vName))
-        }.bind(this))
-    },
+		if( fnAction )
+		_.each(this.views, function(v, vName){
+			this.sv(vName) && fnAction(this.sv(vName))
+		}.bind(this))
+	},
 
 	_setSubview: function(viewName, view){
 		// if this view already existed, clean it up first
