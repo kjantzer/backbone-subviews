@@ -1,9 +1,17 @@
 Backbone.js Subviews
 ===================
 
-![Version 0.4.0](https://img.shields.io/badge/Version-0.4.0-blue.svg)
+![Version 0.6.0](https://img.shields.io/badge/Version-0.6.0-blue.svg)
 
 >Extends `Backbone.View` with support for nested subviews that can be reused and cleaned up when need be. (helps mitigate ghosted views)
+
+## Features
+
+- Cleanup views when no longer needed
+- Provided access to parent views
+- Add methods to help with reusing Views
+- Keeps views uninitialized until needed
+- And more
 
 ## Using Subviews
 
@@ -26,9 +34,8 @@ var MyView = Backbone.View.extend({
 	className: 'my-view',
 	 
 	initialize: function(){
-		this.sv('my-subview', new MySubview())
-		this.$el.append( this.sv('my-subview').el )
-	}
+		this.sv('my-subview', MySubview).renderTo(this)
+	},
 	
 	render: function(){
 	
@@ -63,10 +70,16 @@ var MyListView = Backbone.View.extend({
 	},
 	
 	addOne: function(model){
-		var viewName = 'item-'+model.id
-		var view = this.sv(viewName) || this.sv(viewName, new MyListSubivew({model: model}))
-				
-		this.appendSubview(viewName);
+		
+		let viewName = 'item-'+model.id
+		
+		// MyListSubivew will only be initialized once for the given viewName
+		this.sv(viewName, MyListSubivew)
+			.setModel(model)
+			.renderTo(this)
+		
+		// if you data/options are needed upon initialization of the view, you can do This
+		// this.sv(viewName, MyListSubivew, {model: model, another:'option'})
 	}
 })
 ```
@@ -79,6 +92,7 @@ Since creating and appending subviews to a view is a common routine, backbone.su
 var View1 = Backbone.View.extend({className: 'v1'});
 var View2 = Backbone.View.extend({className: 'v2'});
 var BadgeView = Backbone.View.extend({className: 'badge'});
+var ViewColl = Backbone.View.extend({className: 'v-coll', tagName: 'ul'});
 
 var RootView = Backbone.View.extend({
 
@@ -88,7 +102,16 @@ var RootView = Backbone.View.extend({
 	views: {
 		'view1': View1,
 		'view2': View2,
-		'badge': {view: BadgeView, appendTo: '.title' }
+		'badge': {
+			view: BadgeView,
+			appendTo: '.title'
+		},
+		'view-collection': {
+			view: ViewColl,
+			setModel: function(v, model){
+				v.collection = model.get('a-child-collection')
+			}
+		}
 	}
 
 });
@@ -103,6 +126,7 @@ When the RootView is rendered, all the views defined in `views` will be initiali
 	<h1 class="title">Title<div class="badge"></div></h1>
 	<div class="v1"></div>
 	<div class="v2"></div>
+	<ul class="v-coll"></ul>
 </div>
 ```
 
@@ -113,6 +137,8 @@ When the RootView is rendered, all the views defined in `views` will be initiali
 There are some useful methods added to Backbone.Views
 
 `.sv()` or `.subview()` - save and access subviews
+
+`.renderTo()` - render and append to a backbone view (or jquery element)
 
 `.empty()` - clears the view of contents
 
@@ -128,14 +154,25 @@ There are some useful methods added to Backbone.Views
 
 `.parentView` - a reference to the parent view of this child
 
+`.parent(viewName, returnPromise=false)` - will traverse up parent views until matched view name. Use `root` to get the top level view. Dot notation is supported for traversing up to a parent and then down to a subview.
+
 `.viewName` - the name the child is stored under in the parent
 
 
 ## Changelog
+
+#### v0.6.0
+- return `this` in `setModel` for chainability
+- add `renderTo` method
+- `view` arg in `.sv()` can be uninitialized - the view will only initialize once.
+- defined view in `views` has `setModel` option available
+
+#### v0.5.0
+- new `.parent(viewName, returnPromise=false)` method for traversing up the parent views to the one matching the given name
 
 #### v0.4.0
 - add support for defining and automating subviews on a view
 
 ## License
 
-MIT © [Kevin Jantzer](http://kevinjantzer.com) - Blackstone Publishing
+MIT © [Kevin Jantzer](https://twitter.com/kjantzer) - [Blackstone Publishing](http://www.blackstonepublishing.com/)

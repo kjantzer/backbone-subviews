@@ -1,5 +1,5 @@
 /*
-	Backbone Subviews 0.4.0
+	Backbone Subviews 0.6.0
 
 	Extends Backbone.View with support for nested subviews that can be reused and cleaned up when need be.
 
@@ -9,7 +9,7 @@
 	@since 2014-10-28
 */
 
-_.extend(Backbone.View.prototype, {
+let BackboneSubviews = {
 
 	// stopListeningOnCleanup: false,
 	// removeOnCleanup: false,
@@ -67,6 +67,35 @@ _.extend(Backbone.View.prototype, {
 
         return this;
     },
+	
+	parent: function(viewName, returnPromise=false){
+	
+		var vNames = viewName.split('.') // support dot notation
+		var parentName = vNames.shift()
+		var view = this
+		
+		while( view = view.parentView ){
+			if( view.viewName == parentName )
+				break;
+			
+			if( parentName == 'root' && !view.parentView )
+				break;
+		}
+		
+		// if any view names remaining from dot notation, attempt to traverse down subviews to find the last view
+		if( vNames.length > 0 ){
+			var lastSV
+			vNames.forEach(svName=>{
+				lastSV = svName;
+				view = view && view.sv(svName)
+			})
+		}
+		
+		// return the found view (could be undefined) or a promise?
+		return returnPromise !== true ? view : new Promise((resolve, reject)=>{
+			view ? resolve(view) : reject(new Error('No subview named `'+lastSV+'`'))
+		})
+	},
 
 /*
 	Subview - adds or retrieves subview
@@ -77,16 +106,26 @@ _.extend(Backbone.View.prototype, {
 		var myView = Backbone.View.extend();
 
 		this.subview('my-view', new myView());	// initialized right away
-		this.subview('my-view', myView;			// only inialized the first time it is accessed
+		this.subview('my-view', myView);		// only inialized if not already
 */
-	subview: function(viewName, view){
+	subview: function(viewName, view, opts){
 
 		this.__subviews = this.__subviews || {};
-
+			
+		// new way allows for passing an uninitialized view – will only be initialized if not already
+		if( view && view.prototype && !this.__subviews[viewName]){
+			return this._setSubview(viewName, new view(opts))
+		}
+		else if( view && view.prototype ){
+			return this._getSubview(viewName) 
+		}
+		
+		// old way
 		return view
 			? this._setSubview(viewName, view)
 			: this._getSubview(viewName) 
 	},
+	
 	
 	// shorter alias
 	sv: function(viewName, view){
@@ -96,6 +135,26 @@ _.extend(Backbone.View.prototype, {
 	// high level subview - used to open views and can support opening a view with require.js
 	openSubview: function(viewName){
 		this._getSubview(viewName, 'open');
+	},
+	
+	// default set model
+	setModel: function(model){
+		this._setModel(model)
+		return this
+	},
+	
+	_setModel: function(model){
+		if( this.model )
+			this.stopListening(this.model)
+		this.model = model
+		this.forEachView(v=>{
+			let info = this.views && this.views[v.viewName]
+			
+			if( info && info.setModel )
+				info.setModel.call(this, v, model)
+			else
+				v.setModel&&v.setModel(model)
+		})
 	},
 	
 	// render this.views – will also init and append the view if needed
@@ -123,6 +182,9 @@ _.extend(Backbone.View.prototype, {
             if( !this.sv(vName) ){
                 
 				this.sv(vName, (vInfo.view.prototype.render ? new vInfo.view({model:this.model}) : vInfo.view.call(this)));
+				
+				if( vInfo.setModel )
+					vInfo.setModel.call(this, this.sv(vName), this.model)
 				
 				// let others hook into the setup
 	            this.onViewSetup && this.onViewSetup(vName, this.sv(vName))
@@ -171,12 +233,8 @@ _.extend(Backbone.View.prototype, {
 	_getSubview: function(viewName, method, args){
 
 		var view = this.__subviews[viewName];
-
-		// if view is a string, it is assumed that require.js is being used
-		if( _.isString(view) )
-			return this._requireSubview(viewName, view, method, args);
-
-		else if( typeof view === 'function' )
+		
+		if( typeof view === 'function' )
 			view = this.__subviews[viewName] = this._setupSubview(viewName, new view() );
 
 		if( method && view[method] )
@@ -185,37 +243,12 @@ _.extend(Backbone.View.prototype, {
 		return view;
 	},
 
-	_requireSubview: function(viewName, name, method, args){
-
-		var self = this;
-
-		// not sure I really need this promise here...but we'll leave for now
-		return new Promise(function(resolve, reject) {
-		
-			require([name], function(view){
-
-				if( view ){
-
-					// initialize and setup view
-					view = self.__subviews[viewName] = self._setupSubview(viewName, new view() );
-
-					method && view[method] && view[method].apply(view, args||[])
-
-					resolve(view)
-				
-				}else{
-					reject(view);
-				}
-
-			})
-
-		});
-	},
-
 	_setupSubview: function(viewName, view){
 		view.viewName = viewName;
 		view.parentView = this;
 		view.subviewSetup && view.subviewSetup();
+		if( view.gridArea )
+			view.el.style.gridArea = view.gridArea
 		return view;
 	},
 
@@ -243,6 +276,12 @@ _.extend(Backbone.View.prototype, {
 			this.$el.append( subview.render().el ); 
 		else
 			this.$el.append( subview.el ); 
+	},
+	
+	renderTo($el){
+		if( $el.cid ) $el = $el.$el; // if given a Backbone.View instance
+		$el.append( this.render().el )
+		return this
 	},
 
 	// default empty cleanup method - use to remove event listeners	
@@ -296,4 +335,10 @@ _.extend(Backbone.View.prototype, {
 		return this;
 	}
 
-})
+}
+
+if( typeof Backbone != 'undefined' )
+	Object.assign(Backbone.View.prototype, BackboneSubviews)
+else if( typeof module != 'undefined' )
+	module.exports = BackboneSubviews
+	
