@@ -1,7 +1,7 @@
 Backbone.js Subviews
 ===================
 
-![Version 0.6.0](https://img.shields.io/badge/Version-0.6.0-blue.svg)
+![Version 0.7.0](https://img.shields.io/badge/Version-0.7.0-blue.svg)
 
 >Extends `Backbone.View` with support for nested subviews that can be reused and cleaned up when need be. (helps mitigate ghosted views)
 
@@ -9,9 +9,11 @@ Backbone.js Subviews
 
 - Cleanup views when no longer needed
 - Provided access to parent views
-- Add methods to help with reusing Views
+- Add additional methods to help with reusing Views
 - Keeps views uninitialized until needed
-- And more
+- Propagates `model` to subviews
+- Listen to models/collections by defining them in a hash
+- And more...
 
 ## Using Subviews
 
@@ -132,6 +134,35 @@ When the RootView is rendered, all the views defined in `views` will be initiali
 
 > If you override `render` you'll need to remember to call `renderViews()` on your own.
 
+## Attaching Listeners to Model/Collections
+
+It is common practice for a view to listen to a model or collection for changes and react accordingly. This can be done by specifying a hash of events like so:
+
+```js
+listeners: {
+	model: {
+		'change': 'render',
+		'destroy': 'remove',
+		'reset': function(){
+			// inline function also supported
+		}
+	},
+	collection: {},
+	'name-of-child-collection': {}
+}
+
+// the above is the equivalent of doing this manually
+this.listenTo(this.model, 'change', this.render)
+this.listenTo(this.model, 'destroy', this.remove)
+this.listenTo(this.model, 'rest', function(){})
+```
+
+You'll notice above that [Child Collection](https://www.npmjs.com/package/kjantzer-backbone-child-collections) is supported. The third listener would evaluate to:
+
+```
+this.model.get('name-of-child-collection')
+```
+
 ## Methods & References
 
 There are some useful methods added to Backbone.Views
@@ -160,6 +191,16 @@ There are some useful methods added to Backbone.Views
 
 
 ## Changelog
+
+#### v0.7.0
+- Defined `views:{}` will get `setModel` called upon initialization (if they have it)
+- Model/Collection listeners can be defined and applied automatically
+
+#### v0.6.2
+- `collection: this.collection` also passed to view upon creation (previously only this.model was given)
+
+#### v0.6.1
+- fix `.sv` alias not passing `opts` arg
 
 #### v0.6.0
 - return `this` in `setModel` for chainability

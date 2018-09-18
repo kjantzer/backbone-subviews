@@ -1,5 +1,5 @@
 /*
-	Backbone Subviews 0.6.0
+	Backbone Subviews 0.7.0
 
 	Extends Backbone.View with support for nested subviews that can be reused and cleaned up when need be.
 
@@ -20,6 +20,18 @@ let BackboneSubviews = {
 		'view': Backbone.View,
 		'sidebar': MySidebarView,
 		'badge': {view: BadgeView, appendTo: '.title.badge' }
+	},*/
+	
+	/*listeners: {
+		model: {
+			'change': 'render',
+			'destroy': 'remove',
+			'reset': function(){
+				// inline function also supported
+			}
+		},
+		collection: {},
+		'name-of-child-collection': {}
 	},*/
 	
 	// optional setup logic for views
@@ -59,7 +71,7 @@ let BackboneSubviews = {
 		var html;
 		
 		if( !data && this.model )
-			data = this.model.toTemplateData ? this.model.toTemplateData() : this.model.toJSON()
+			data = this.model.toTemplate ? this.model.toTemplate() : this.model.toJSON()
 
 		html = data ? _.template(template||this.template, data) : (template||this.template)
 
@@ -128,8 +140,8 @@ let BackboneSubviews = {
 	
 	
 	// shorter alias
-	sv: function(viewName, view){
-		return this.subview(viewName, view)
+	sv: function(viewName, view, opts){
+		return this.subview(viewName, view, opts)
 	},
 
 	// high level subview - used to open views and can support opening a view with require.js
@@ -146,7 +158,11 @@ let BackboneSubviews = {
 	_setModel: function(model){
 		if( this.model )
 			this.stopListening(this.model)
+		
 		this.model = model
+		
+		this.setListeners()
+		
 		this.forEachView(v=>{
 			let info = this.views && this.views[v.viewName]
 			
@@ -157,8 +173,41 @@ let BackboneSubviews = {
 		})
 	},
 	
+	setListeners(){
+		if( !this.listeners ) return
+		
+		_.each(this.listeners, (events, key)=>{
+			
+			let m = null;
+			
+			if( key == 'model' )
+				m = this.model
+				
+			else if( key == 'coll' || key == 'collection' )
+				m = this.collection
+			
+			else if( this.model )
+				m = this.model.get(key)
+				
+			if( !m || (!(m instanceof Backbone.Model) && !(m instanceof Backbone.Collection)) )
+				return console.warn(`Could not add listeners for ${key} on`, this)
+				
+			_.each(events, (fn, evt)=>{
+				
+				if( !_.isFunction(fn) )
+					fn = this[fn] ? this[fn].bind(this) : null
+				
+				if( !fn )
+					return console.warn('Could not add listener:', fn, 'on', this)
+					
+				this.listenTo(m, evt, fn)
+			})
+			
+		})
+	},
+	
 	// render this.views – will also init and append the view if needed
-	renderViews: function(){
+	renderViews: function(opts){
 
 		if( this.views )
 		_.each(this.views, (v, vName)=>{
@@ -181,10 +230,12 @@ let BackboneSubviews = {
 			// if view has not be created, create it
 			if( !this.sv(vName) ){
 				
-				this.sv(vName, (vInfo.view.prototype.render ? new vInfo.view({model:this.model}) : vInfo.view.call(this)));
+				this.sv(vName, (vInfo.view.prototype.render ? new vInfo.view({model:this.model, collection: this.collection}) : vInfo.view.call(this)));
 				
 				if( vInfo.setModel )
 					vInfo.setModel.call(this, this.sv(vName), this.model)
+				else if( this.model && this.sv(vName).setModel )
+					this.sv(vName).setModel(this.model)
 				
 				// let others hook into the setup
 				this.onViewSetup && this.onViewSetup(vName, this.sv(vName))
@@ -206,7 +257,8 @@ let BackboneSubviews = {
 			}
 			
 			// render the subview
-			this.sv(vName).render()
+			if( !opts || opts.render !== false)
+				this.sv(vName).render()
 		})
 	},
 	
@@ -218,6 +270,9 @@ let BackboneSubviews = {
 	},
 
 	_setSubview: function(viewName, view){
+		
+		this.__subviews = this.__subviews || {};
+		
 		// if this view already existed, clean it up first
 		if( this.__subviews[viewName] ) this.__subviews[viewName].cleanup();
 

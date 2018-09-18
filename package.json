@@ -1,6 +1,6 @@
 {
   "name": "kjantzer-backbone-subviews",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Extends Backbone.View with support for nested subviews that can be reused and cleaned up when need be.",
   "repository": {
     "type": "git",
